@@ -17,7 +17,6 @@ warnings.filterwarnings("ignore")
 def get_dataloader(args, *modes):
     res = []
     for mode in modes:
-        print(mode)
         mdb_path = os.path.join('data', 'omniglot_' + mode + '.mdb')
         try:
             dataset = torch.load(mdb_path)
