@@ -8,7 +8,7 @@ def conv_block(in_channels, out_channels):
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, 3, padding=1),
         nn.BatchNorm2d(out_channels),
-        nn.ReLU(),
+        nn.ReLU(inplace=True),
         nn.MaxPool2d(2)
     )
 
@@ -21,13 +21,16 @@ class ProtoNet(nn.Module):
 
     def __init__(self, x_dim=1, hid_dim=64, z_dim=64):
         super(ProtoNet, self).__init__()
-        self.encoder = nn.Sequential(
-            conv_block(x_dim, hid_dim),
-            conv_block(hid_dim, hid_dim),
-            conv_block(hid_dim, hid_dim),
-            conv_block(hid_dim, z_dim),
-        )
+        self.block1 = conv_block(x_dim, hid_dim)
+        self.block2 = conv_block(hid_dim, hid_dim)
+        self.block3 = conv_block(hid_dim, hid_dim)
+        self.block4 = conv_block(hid_dim, z_dim)
 
     def forward(self, x):
-        x = self.encoder(x)
-        return x.view(x.size(0), -1)
+        out = self.block1(x)
+        out = self.block2(out)
+        out = self.block3(out)
+        out = self.block4(out)
+        out = out.view(out.size(0), -1)
+        
+        return out
