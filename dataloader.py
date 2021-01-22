@@ -16,6 +16,7 @@ warnings.filterwarnings("ignore")
 
 def get_dataloader(args, *modes):
     res = []
+    print("Loading data...", end='')
     for mode in modes:
         mdb_path = os.path.join('data', 'omniglot_' + mode + '.mdb')
         try:
@@ -35,6 +36,7 @@ def get_dataloader(args, *modes):
         data_loader = DataLoader(dataset, batch_sampler=sampler)
         res.append(data_loader)
 
+    print("done")
     if len(modes) == 1:
         return res[0]
     else:
@@ -91,18 +93,20 @@ class OmniglotDataset(Dataset):
             degree = int(degree[3:])
 
             transform = A.Compose([
+                A.Resize(28, 28),
                 A.Rotate((degree, degree), p=1),
+                A.Normalize(mean=0.92206, std=0.08426),
                 ToTensorV2(),
             ])
 
             for img_dir in glob(os.path.join(self.root_dir, class_dir, '*')):
-                img = cv2.imread(img_dir)
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                img = cv2.imread(img_dir, cv2.IMREAD_GRAYSCALE)
+                # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 img = transform(image=img)['image']
 
                 x.append(img)
                 y.append(idx)
-
+        y = torch.LongTensor(y)
         return x, y, class_to_idx
 
 
@@ -132,7 +136,7 @@ class PrototypicalBatchSampler(object):
         self.sample_per_class = num_samples
         self.iterations = iterations
 
-        self.classes, self.counts = np.unique(self.labels, return_counts=True)
+        self.classes, self.counts = torch.unique(self.labels, return_counts=True)
         self.classes = torch.LongTensor(self.classes)
 
         # create a matrix, indexes, of dim: classes X max(elements per class)
