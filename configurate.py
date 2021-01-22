@@ -18,7 +18,7 @@ parser.add_argument('-epo', '--epochs',
                     help='number of epochs to train for',
                     default=100)
 
-parser.add_argument('-lr', '--learning_rate',
+parser.add_argument('--lr', '--learning_rate',
                     type=float,
                     help='learning rate for the model, default=0.001',
                     default=0.001)
