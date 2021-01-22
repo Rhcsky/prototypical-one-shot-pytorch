@@ -132,3 +132,4 @@ dmypy.json
 data/omniglot
 data/*.mdb
 .idea/
+runs/
