@@ -10,9 +10,10 @@ class PrototypicalLoss(Module):
 
     def __init__(self):
         super(PrototypicalLoss, self).__init__()
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     def forward(self, input, target, n_support):
-        return prototypical_loss(input, target, n_support)
+        return prototypical_loss(input, target, n_support, self.device)
 
 
 def euclidean_dist(x, y):
@@ -33,7 +34,7 @@ def euclidean_dist(x, y):
     return torch.pow(x - y, 2).sum(2)
 
 
-def prototypical_loss(input, target, n_support):
+def prototypical_loss(input, target, n_support, device):
     '''
     Inspired by https://github.com/jakesnell/prototypical-networks/blob/master/protonets/models/few_shot.py
 
@@ -66,7 +67,7 @@ def prototypical_loss(input, target, n_support):
 
     log_p_y = F.log_softmax(-dists, dim=1).view(n_classes, n_query, -1)
 
-    target_inds = torch.arange(0, n_classes)
+    target_inds = torch.arange(0, n_classes).to(device)
     target_inds = target_inds.view(n_classes, 1, 1)
     target_inds = target_inds.expand(n_classes, n_query, 1).long()
 
