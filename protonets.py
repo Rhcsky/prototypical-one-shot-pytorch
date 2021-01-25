@@ -2,9 +2,6 @@ import torch.nn as nn
 
 
 def conv_block(in_channels, out_channels):
-    '''
-    returns a block conv-bn-relu-pool
-    '''
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, 3, padding=1),
         nn.BatchNorm2d(out_channels),
@@ -34,3 +31,5 @@ class ProtoNet(nn.Module):
         out = out.view(out.size(0), -1)
         
         return out
+
+
