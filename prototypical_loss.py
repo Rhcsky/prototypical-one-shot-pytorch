@@ -24,8 +24,8 @@ def euclidean_dist(x, y):
     # y: M x D
     n = x.size(0)
     m = y.size(0)
-    d = x.size(1)
-    if d != y.size(1):
+    d = x.size(-1)
+    if d != y.size(-1):
         raise Exception
 
     x = x.unsqueeze(1).expand(n, m, d)
@@ -55,7 +55,7 @@ def prototypical_loss(input, target, n_support, device):
     n_classes = len(classes)
 
     # Make prototypes
-    support_idxs = torch.stack(list(map(lambda c: target.eq(c).nonzero()[:5].squeeze(1), classes)))
+    support_idxs = torch.stack(list(map(lambda c: target.eq(c).nonzero()[:n_support].squeeze(1), classes)))
     prototypes = torch.stack([input[idx_list].mean(0) for idx_list in support_idxs])
 
     # Make query samples
@@ -66,14 +66,12 @@ def prototypical_loss(input, target, n_support, device):
     dists = euclidean_dist(query_samples, prototypes)
 
     log_p_y = F.log_softmax(-dists, dim=1).view(n_classes, n_query, -1)
-
-    target_inds = torch.arange(0, n_classes).to(device)
-    target_inds = target_inds.view(n_classes, 1, 1)
-    target_inds = target_inds.expand(n_classes, n_query, 1).long()
-
-    loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
-
     y_hat = log_p_y.argmax(2)
-    acc_val = y_hat.eq(target_inds.squeeze()).float().mean()
+
+    target_idxs = torch.arange(0, n_classes).to(device).view(n_classes, 1, 1).expand(n_classes, n_query, 1).long()
+
+    loss_val = -log_p_y.gather(2, target_idxs).squeeze().view(-1).mean()
+
+    acc_val = y_hat.eq(target_idxs.squeeze()).float().mean()
 
     return loss_val, acc_val
