@@ -77,9 +77,9 @@ def main():
             'optimizer_state_dict': optimizer.state_dict(),
         }, is_best)
 
-        writer.add_scalar("Loss/Train", train_loss)
-        writer.add_scalar("Loss/Val", val_loss)
-        writer.add_scalar("Acc/Top1", acc1)
+        writer.add_scalar("Loss/Train", train_loss, epoch)
+        writer.add_scalar("Loss/Val", val_loss, epoch)
+        writer.add_scalar("Acc/Top1", acc1, epoch)
 
         print(f"[{epoch}/{args.epochs}] {train_loss:.3f}, {val_loss:.3f}, {acc1:.3f}, # {best_acc1:.3f}")
 
