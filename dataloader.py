@@ -6,6 +6,7 @@ import torch
 from glob import glob
 import numpy as np
 import albumentations as A
+import pickle
 import cv2
 from albumentations.pytorch import ToTensorV2
 from tqdm import tqdm
@@ -14,25 +15,36 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-def get_dataloader(args, *modes):
+def get_dataloader(args, dataset, *modes):
     res = []
     print("Loading data...", end='')
     for mode in modes:
-        mdb_path = os.path.join('data', 'omniglot_' + mode + '.mdb')
-        try:
-            dataset = torch.load(mdb_path)
-        except Exception:
-            dataset = OmniglotDataset(mode)
-            torch.save(dataset, mdb_path)
+        if dataset == 'omniglot':
+            mdb_path = os.path.join('data', 'omniglot_' + mode + '.mdb')
+            try:
+                dataset = torch.load(mdb_path)
+            except Exception:
+                dataset = OmniglotDataset(mode)
+                torch.save(dataset, mdb_path)
+
+        elif dataset == 'miniImagenet':
+            mdb_path = os.path.join('data', 'miniImagenet_' + mode + '.mdb')
+            try:
+                dataset = torch.load(mdb_path)
+            except Exception:
+                dataset = MiniImagenetDataset(mode)
+                torch.save(dataset, mdb_path)
 
         if 'train' in mode:
             classes_per_it = args.classes_per_it_tr
-            num_samples = args.num_support_tr + args.num_query_tr
+            num_support = args.num_support_tr
+            num_query = args.num_query_tr
         else:
             classes_per_it = args.classes_per_it_val
-            num_samples = args.num_support_val + args.num_query_val
+            num_support = args.num_support_val
+            num_query = args.num_query_val
 
-        sampler = PrototypicalBatchSampler(dataset.y, classes_per_it, num_samples, args.iterations)
+        sampler = PrototypicalBatchSampler(dataset.y, classes_per_it, num_support, num_query, args.iterations)
         data_loader = DataLoader(dataset, batch_sampler=sampler)
         res.append(data_loader)
 
@@ -43,11 +55,34 @@ def get_dataloader(args, *modes):
         return res
 
 
+class MiniImagenetDataset(Dataset):
+    def __init__(self, mode='train'):
+        super().__init__()
+        self.root_dir = 'data/miniImagenet'
+
+        if not os.path.exists(self.root_dir):
+            print('Data not found. Downloading data')
+            self.download()
+
+        dataset = pickle.load(open(os.path.join(self.root_dir, mode), 'rb'))
+        self.x = dataset['image_data']
+        self.y = dataset['image_label']
+
+    def __getitem__(self, index):
+        return self.x[index], self.y[index]
+
+    def __len__(self):
+        return len(self.x)
+
+    def download(self):
+        print('download miniImagenet')
+
+
 class OmniglotDataset(Dataset):
     def __init__(self, mode='trainval'):
         super().__init__()
         self.root_dir = 'data/omniglot'
-        self.vinyals_dir = 'data/vinyals'
+        self.vinyals_dir = 'data/vinyals/omniglot'
 
         if not os.path.exists(self.root_dir):
             print('Data not found. Downloading data')
@@ -111,17 +146,17 @@ class OmniglotDataset(Dataset):
 
 
 class PrototypicalBatchSampler(object):
-    '''
+    """
     PrototypicalBatchSampler: yield a batch of indexes at each iteration.
     Indexes are calculated by keeping in account 'classes_per_it' and 'num_samples',
     In fact at every iteration the batch indexes will refer to  'num_support' + 'num_query' samples
     for 'classes_per_it' random classes.
 
     __len__ returns the number of episodes per epoch (same as 'self.iterations').
-    '''
+    """
 
-    def __init__(self, labels, classes_per_it, num_samples, iterations):
-        '''
+    def __init__(self, labels, classes_per_it, num_samples_support, num_samples_query, iterations):
+        """
         Initialize the PrototypicalBatchSampler object
         Args:
         - labels: an iterable containing all the labels for the current dataset
@@ -129,11 +164,12 @@ class PrototypicalBatchSampler(object):
         - classes_per_it: number of random classes for each iteration
         - num_samples: number of samples for each iteration for each class (support + query)
         - iterations: number of iterations (episodes) per epoch
-        '''
+        """
         super(PrototypicalBatchSampler, self).__init__()
         self.labels = labels
         self.classes_per_it = classes_per_it
-        self.sample_per_class = num_samples
+        self.num_samples_support = num_samples_support
+        self.num_samples_query = num_samples_query
         self.iterations = iterations
 
         self.classes, self.counts = torch.unique(self.labels, return_counts=True)
@@ -153,32 +189,31 @@ class PrototypicalBatchSampler(object):
             self.numel_per_class[label_idx] += 1
 
     def __iter__(self):
-        '''
+        """
         yield a batch of indexes
-        '''
-        spc = self.sample_per_class
+        """
+        nss = self.num_samples_support
+        nsq = self.num_samples_query
         cpi = self.classes_per_it
 
-        for it in range(self.iterations):
-            batch_size = spc * cpi
-            batch = torch.LongTensor(batch_size)
+        for _ in range(self.iterations):
+            batch_s = torch.LongTensor(nss * cpi)
+            batch_q = torch.LongTensor(nsq * cpi)
             c_idxs = torch.randperm(len(self.classes))[:cpi]  # 랜덤으로 클래스 60개 선택
             for i, c in enumerate(self.classes[c_idxs]):
-                s = slice(i * spc, (i + 1) * spc)  # 하나의 클래스당 선택한 이미지
-                # FIXME when torch.argwhere will exists
+                s_s = slice(i * nss, (i + 1) * nss)  # 하나의 클래스당 선택한 support 이미지
+                s_q = slice(i * nsq, (i + 1) * nsq)  # 하나의 클래스당 선택한 query 이미지
+
                 label_idx = torch.arange(len(self.classes)).long()[self.classes == c].item()
-                sample_idxs = torch.randperm(self.numel_per_class[label_idx])[:spc]
-                batch[s] = self.indexes[label_idx][sample_idxs]
-            batch = batch[torch.randperm(len(batch))]
+                sample_idxs = torch.randperm(self.numel_per_class[label_idx])[:nss + nsq]
+
+                batch_s[s_s] = self.indexes[label_idx][sample_idxs][:nss]
+                batch_q[s_q] = self.indexes[label_idx][sample_idxs][nss:]
+            batch = torch.cat((batch_s, batch_q))
             yield batch
 
     def __len__(self):
-        '''
+        """
         returns the number of iterations (episodes) per epoch
-        '''
+        """
         return self.iterations
-
-
-if __name__ == '__main__':
-    # torch.save(dataset, 'data/omniglot_trainval.mdb')
-    dataset = torch.load('data/omniglot_trainval.mdb')
