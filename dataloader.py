@@ -80,11 +80,12 @@ class MiniImagenetDataset(Dataset):
 
         transform = A.Compose([
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2(),
         ])
 
         x = transform(image=img)['image']
 
-        return x, self.y[index]
+        return x.permute(0, 1, 2), self.y[index]
 
     def __len__(self):
         return len(self.x)
