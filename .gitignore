@@ -129,9 +129,9 @@ dmypy.json
 .pyre/
 
 # custom
-data/
+data/*
 .idea/
 runs/
 
 #except
-!data/vinyals
+!data/vinyals/
