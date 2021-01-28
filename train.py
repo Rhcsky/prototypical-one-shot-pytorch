@@ -1,16 +1,16 @@
 import os
 from glob import glob
 
+import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
-import numpy as np
 
 from configurate import get_config
 from dataloader import get_dataloader
 from protonets import ProtoNet
 from prototypical_loss import PrototypicalLoss
-from one_cycle_policy import OneCyclePolicy
+# from one_cycle_policy import OneCyclePolicy
 from utils import AverageMeter
 
 best_acc1 = 0
@@ -27,7 +27,7 @@ def main():
     torch.manual_seed(args.manual_seed)
     torch.cuda.manual_seed(args.manual_seed)
 
-    train_loader, val_loader = get_dataloader(args, 'train', 'val')
+    train_loader, val_loader = get_dataloader(args, 'miniImagenet', 'train', 'val')
 
     model = ProtoNet().to(device)
 
