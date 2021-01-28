@@ -66,11 +66,25 @@ class MiniImagenetDataset(Dataset):
             self.download()
 
         dataset = pickle.load(open(os.path.join(self.root_dir, mode), 'rb'))
+
         self.x = dataset['image_data']
-        self.y = dataset['image_label']
+
+        self.y = torch.arange(len(self.x))
+        for idx, (name, id) in enumerate(dataset['class_dict'].items()):
+            s = slice(id[0], id[-1] + 1)
+            self.y[s] = idx
 
     def __getitem__(self, index):
-        return self.x[index], self.y[index]
+
+        img = self.x[index]
+
+        transform = A.Compose([
+            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+
+        x = transform(image=img)['image']
+
+        return x, self.y[index]
 
     def __len__(self):
         return len(self.x)
