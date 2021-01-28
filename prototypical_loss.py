@@ -65,13 +65,11 @@ def prototypical_loss(input, target, n_support, device):
 
     dists = euclidean_dist(query_samples, prototypes)
 
-    log_p_y = F.log_softmax(-dists, dim=1).view(n_classes, n_query, -1)
-    y_hat = log_p_y.argmax(2)
+    log_p_y = F.log_softmax(-dists, dim=1)
+    y_hat = log_p_y.argmax(1)
+    target_label = torch.LongTensor([x for x in range(n_classes) for _ in range(n_query)]).to(device)
 
-    target_idxs = torch.arange(0, n_classes).to(device).view(n_classes, 1, 1).expand(n_classes, n_query, 1).long()
-
-    loss_val = -log_p_y.gather(2, target_idxs).squeeze().view(-1).mean()
-
-    acc_val = y_hat.eq(target_idxs.squeeze()).float().mean()
+    loss_val = torch.nn.NLLLoss()(log_p_y, target_label)
+    acc_val = y_hat.eq(target_label.squeeze()).float().mean()
 
     return loss_val, acc_val
