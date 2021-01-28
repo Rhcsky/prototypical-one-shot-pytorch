@@ -11,10 +11,10 @@ def conv_block(in_channels, out_channels):
 
 
 class ProtoNet(nn.Module):
-    '''
+    """
     Model as described in the reference paper,
     source: https://github.com/jakesnell/prototypical-networks/blob/f0c48808e496989d01db59f86d4449d7aee9ab0c/protonets/models/few_shot.py#L62-L84
-    '''
+    """
 
     def __init__(self, x_dim=1, hid_dim=64, z_dim=64):
         super(ProtoNet, self).__init__()
@@ -29,7 +29,5 @@ class ProtoNet(nn.Module):
         out = self.block3(out)
         out = self.block4(out)
         out = out.view(out.size(0), -1)
-        
+
         return out
-
-
