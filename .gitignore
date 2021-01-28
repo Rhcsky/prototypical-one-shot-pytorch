@@ -129,7 +129,9 @@ dmypy.json
 .pyre/
 
 # custom
-data/omniglot
-data/*.mdb
+data/
 .idea/
 runs/
+
+#except
+!data/vinyals
