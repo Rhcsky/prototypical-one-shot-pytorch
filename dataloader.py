@@ -1,16 +1,17 @@
+import os
+import pickle
+import shutil
+import warnings
+from glob import glob
+
+import albumentations as A
+import cv2
+import numpy as np
+import torch
+from albumentations.pytorch import ToTensorV2
 from torch.utils.data import Dataset, DataLoader
 from torchvision import datasets as dset
-import shutil
-import os
-import torch
-from glob import glob
-import numpy as np
-import albumentations as A
-import pickle
-import cv2
-from albumentations.pytorch import ToTensorV2
 from tqdm import tqdm
-import warnings
 
 warnings.filterwarnings("ignore")
 
@@ -75,7 +76,56 @@ class MiniImagenetDataset(Dataset):
         return len(self.x)
 
     def download(self):
-        print('download miniImagenet')
+        import tarfile
+        gdrive_id = '16V_ZlkW4SsnNDtnGmaBRq2OoPmUOc5mY'
+        gz_filename = 'mini-imagenet.tar.gz'
+        root = 'data/miniImagenet'
+
+        self.download_file_from_google_drive(gdrive_id, root, gz_filename)
+
+        filename = os.path.join(root, gz_filename)
+
+        with tarfile.open(filename, 'r') as f:
+            f.extractall(root)
+
+        os.rename('data/miniImagenet/mini-imagenet-cache-train.pkl', 'data/miniImagenet/train')
+        os.rename('data/miniImagenet/mini-imagenet-cache-val.pkl', 'data/miniImagenet/val')
+        os.rename('data/miniImagenet/mini-imagenet-cache-test.pkl', 'data/miniImagenet/test')
+
+    def download_file_from_google_drive(self, file_id, root, filename):
+        from torchvision.datasets.utils import _get_confirm_token, _save_response_content
+
+        """Download a Google Drive file from  and place it in root.
+        Args:
+            file_id (str): id of file to be downloaded
+            root (str): Directory to place downloaded file in
+            filename (str, optional): Name to save the file under. If None, use the id of the file.
+            md5 (str, optional): MD5 checksum of the download. If None, do not check
+        """
+        # Based on https://stackoverflow.com/questions/38511444/python-download-files-from-google-drive-using-url
+        import requests
+        url = "https://docs.google.com/uc?export=download"
+
+        root = os.path.expanduser(root)
+        if not filename:
+            filename = file_id
+        fpath = os.path.join(root, filename)
+
+        os.makedirs(root, exist_ok=True)
+
+        if os.path.isfile(fpath):
+            print('Using downloaded and verified file: ' + fpath)
+        else:
+            session = requests.Session()
+
+            response = session.get(url, params={'id': file_id}, stream=True)
+            token = _get_confirm_token(response)
+
+            if token:
+                params = {'id': file_id, 'confirm': token}
+                response = session.get(url, params=params, stream=True)
+
+            _save_response_content(response, fpath)
 
 
 class OmniglotDataset(Dataset):
