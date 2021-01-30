@@ -16,9 +16,9 @@ class ProtoNet(nn.Module):
     source: https://github.com/jakesnell/prototypical-networks/blob/f0c48808e496989d01db59f86d4449d7aee9ab0c/protonets/models/few_shot.py#L62-L84
     """
 
-    def __init__(self, x_dim=1, hid_dim=64, z_dim=64):
+    def __init__(self, input_dim, hid_dim=64, z_dim=64):
         super(ProtoNet, self).__init__()
-        self.block1 = conv_block(x_dim, hid_dim)
+        self.block1 = conv_block(input_dim, hid_dim)
         self.block2 = conv_block(hid_dim, hid_dim)
         self.block3 = conv_block(hid_dim, hid_dim)
         self.block4 = conv_block(hid_dim, z_dim)
