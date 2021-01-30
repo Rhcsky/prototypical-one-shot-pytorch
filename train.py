@@ -8,7 +8,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 from configurate import get_config
 from dataloader import get_dataloader
-from protonets import ProtoNet
+from models.protonet import ProtoNet
+from models.resnet import ResNet
 from prototypical_loss import PrototypicalLoss
 # from one_cycle_policy import OneCyclePolicy
 from utils import AverageMeter
@@ -27,9 +28,16 @@ def main():
     torch.manual_seed(args.manual_seed)
     torch.cuda.manual_seed(args.manual_seed)
 
-    train_loader, val_loader = get_dataloader(args, 'miniImagenet', 'train', 'val')
+    train_loader, val_loader = get_dataloader(args, args.dataset, 'train', 'val')
 
-    model = ProtoNet().to(device)
+    input_dim = 1 if args.dataset == 'omniglot' else 3
+
+    if args.model == 'protonet':
+        model = ProtoNet(input_dim).to(device)
+        print("ProtoNet loaded")
+    else:
+        model = ResNet(input_dim).to(device)
+        print("ResNet loaded")
 
     criterion = PrototypicalLoss().to(device)
 
