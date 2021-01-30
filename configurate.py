@@ -3,10 +3,6 @@ import json
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset_dir',
-                    type=str,
-                    help='path to dataset',
-                    default='data')
 
 parser.add_argument('-e', '--exp_name',
                     type=str,
@@ -78,7 +74,17 @@ parser.add_argument('--log_dir',
                     type=str,
                     help='root where to store models, losses and accuracies')
 
-parser.add_argument("--resume", action="store_true", help="resume train")
+parser.add_argument('-d', '--dataset',
+                    type=str,
+                    help="Select dataset [omniglot | miniImagenet]",
+                    default='omniglot')
+
+parser.add_argument('-m', '--model',
+                    type=str,
+                    help='Select model [protonet | resnet]',
+                    default='protonet')
+
+parser.add_argument('--resume', action="store_true", help="resume train")
 
 parser.set_defaults(resume=False)
 
