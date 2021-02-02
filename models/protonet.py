@@ -6,7 +6,7 @@ def conv_block(in_channels, out_channels):
         nn.Conv2d(in_channels, out_channels, 3, padding=1),
         nn.BatchNorm2d(out_channels),
         nn.ReLU(inplace=True),
-        nn.MaxPool2d(2)
+        nn.MaxPool2d(2),
     )
 
 
@@ -31,3 +31,9 @@ class ProtoNet(nn.Module):
         out = out.view(out.size(0), -1)
 
         return out
+
+
+if __name__ == "__main__":
+    model = ProtoNet(3)
+
+    print(model)
